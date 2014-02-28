@@ -153,3 +153,20 @@ function lda_step_random!(lda::BasicLDA, rng::AbstractRNG)
     # Maximization step
     maximization_step!(lda)
 end
+
+
+function lda_step_gibbs!(lda::BasicLDA, rng::AbstractRNG)
+    # Gibbs assigns a topic to every word
+    
+    # Random Expectation
+    for d in 1:num_documents(lda)
+        for w in 1:size_vocabulary(lda)
+            assignment = probability
+            
+            lda.assignments_[w, d] = assignment
+        end
+    end
+    
+    # Maximization step
+    maximization_step!(lda)
+end
