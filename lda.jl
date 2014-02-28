@@ -16,23 +16,38 @@ type BasicLDA <: LDAStorage
 end
 
 function BasicLDA(vocabulary::Array{UTF8String}, documents::Sparse, num_topics::Int, rng::AbstractRNG)
-    topics = sprand(num_topics, length(vocabulary), 1.0 / num_topics)
-    theta = sprand(num_topics, length(documents), 2.0 / num_topics)
-    assignments = ones(length(vocabulary), length(documents))
+    @assert size(documents, 1) == length(vocabulary)
+    num_documents = size(documents, 2)
+    topics = sprand(length(vocabulary), num_topics, 1.0 / num_topics)
+    theta = sprand(num_topics, num_documents, 2.0 / num_topics)
+    assignments = ones(length(vocabulary), num_documents)
 
     BasicLDA(vocabulary, documents, topics, theta, assignments)
 end
 
 function num_topics(lda::BasicLDA)
-    return length(lda.topics_)
+    return size(lda.topics_, 2)
+end
+
+function num_documents(lda::BasicLDA)
+    return size(lda.documents, 2)
+end
+
+function size_vocabulary(lda::BasicLDA)
+    return length(lda.vocabulary)
 end
 
 function lda_step_random!(lda::BasicLDA, rng::AbstractRNG)
     # Randomly assigns a topic to every word
-    for d in 1:length(lda.documents)
-        for w in 1:length(lda.documents[d])
+    for d in 1:num_documents(lda)
+        for w in 1:size_vocabulary(lda)
             lda.assignments_[w, d] = ceil(rand(rng) * num_topics(lda))
         end
     end
 end
 
+function topics(lda::BasicLDA)
+    for d in 1:size(lda.topics_, 1)
+        
+    end
+end
