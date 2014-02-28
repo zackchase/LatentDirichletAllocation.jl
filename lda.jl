@@ -37,14 +37,52 @@ function size_vocabulary(lda::BasicLDA)
     return length(lda.vocabulary)
 end
 
-function show_topics(lda::BasicLDA; topics=5, words=5)
+function show_topic(io, lda::BasicLDA, t::Int; words=5)
+   top_words = sort([(t, i) for (i, t) in enumerate(lda.topics_[t,:])], rev=true)
+    @printf(io, "Topic %i:", t) 
+    for w in 1:words
+      probability, index = top_words[w]
+      @printf(io, " %s (%0.2f)", lda.vocabulary[index], probability)
+    end
+end
+
+function show_topic(lda::BasicLDA, t::Int; words=5)
+   io = IOBuffer()
+   show_topic(io, lda, t; words=words)
+   takebuf_string(io) 
+end
+
+function show_topics(io, lda::BasicLDA; topics=5, words=5)
     for t in 1:min(topics, num_topics(lda))
-        top_topics = sort([(t, i) for (i, t) in enumerate(lda.topics_[t,:])], rev=true)
-        for w in 1:words
-            probability, index = top_topics[w]
-            @printf("%i. %s (%f)\n", t, lda.vocabulary[index], probability)
-        end
-        @printf("\n")
+        @printf(io, "%s\n", show_topic(lda, t; words=words))
+    end
+end
+
+function show_word(io, lda::BasicLDA, w::Int)
+    return @printf(io, "%s", lda.vocabulary[w])
+end
+
+function show_word(lda::BasicLDA, w::Int)
+   io = IOBuffer()
+   show_word(io, lda, w)
+   takebuf_string(io) 
+end
+
+function show_document(io, lda::BasicLDA, d::Int; words=5, topics=5)
+    @printf(io, "Document %i:", d)
+    for w in 1:words
+        @printf(io, " %s", show_word(lda, w))
+    end
+    @printf(io, "\n")
+    for t in 1:min(topics, num_topics(lda))
+        valence = lda.theta_[t, d]
+        @printf(io, "%0.2f%%...%s\n", valence, show_topic(lda, t; words=words))
+    end
+end
+
+function show_documents(io, lda::BasicLDA; documents=5, topics=5, words=5)
+    for d in 1:min(documents, num_documents(lda))
+        show_document(io, lda, d; words=words, topics=topics)
     end
 end
 
