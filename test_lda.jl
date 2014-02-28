@@ -1,10 +1,12 @@
 using Base.Test
 require("lda.jl")
 
-vocabulary = UTF8String["the", "world", "is", "yours", "globe", "trotter", "123", "234", "789"]
+vocabulary = UTF8String["the", "world", "is", "yours", "globe", "trotter", "red", "green", "blue", "yellow", "purple"]
 
+V = length(vocabulary)
 NDOCS = 40
-documents = speye(length(vocabulary), NDOCS)
+documents = speye(V, NDOCS)
+documents = sparse(ceil(V * sprand(length(vocabulary), NDOCS, 0.3)))
 
 rng = MersenneTwister(1)
 

@@ -6,6 +6,9 @@ typealias SparseFloats SparseMatrixCSC{Float64,Int64}
 typealias Topics SparseFloats
 typealias TopicAssignments Matrix{Int64}
 
+const W = 3
+const T = 5
+
 type BasicLDA <: LDAStorage
     vocabulary::Array{UTF8String}
     documents::SparseFloats # words x documents
@@ -68,19 +71,31 @@ function show_word(lda::BasicLDA, w::Int)
    takebuf_string(io) 
 end
 
-function show_document(io, lda::BasicLDA, d::Int; words=5, topics=5)
-    @printf(io, "Document %i:", d)
-    for w in 1:words
-        @printf(io, " %s", show_word(lda, w))
-    end
-    @printf(io, "\n")
-    for t in 1:min(topics, num_topics(lda))
-        valence = lda.theta_[t, d]
-        @printf(io, "%0.2f%%...%s\n", valence, show_topic(lda, t; words=words))
+function show_top_words(io, lda::BasicLDA, d::Int; words=5)
+    count = 0
+    for w in 1:size_vocabulary(lda)
+        if lda.documents[w, d] > 0
+            @printf(io, " %s", show_word(lda, w))
+            count += 1
+        end
+        if count > words
+            break
+        end
     end
 end
 
-function show_documents(io, lda::BasicLDA; documents=5, topics=5, words=5)
+function show_document(io, lda::BasicLDA, d::Int; words=W, topics=T)
+    @printf(io, "Document %i:", d)
+    show_top_words(io, lda, d; words=words)
+    @printf(io, "\n")
+    top_topics = sort([(t, i) for (i, t) in enumerate(lda.theta_[:,d])], rev=true)
+    for i in 1:min(topics, num_topics(lda))
+        proportion, tt = top_topics[i]
+        @printf(io, "   %0.2f%%..%s\n", proportion, show_topic(lda, tt; words=words))
+    end
+end
+
+function show_documents(io, lda::BasicLDA; documents=5, topics=T, words=W)
     for d in 1:min(documents, num_documents(lda))
         show_document(io, lda, d; words=words, topics=topics)
     end
