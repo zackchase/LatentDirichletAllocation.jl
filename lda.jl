@@ -1,9 +1,11 @@
 abstract LDAStorage
 
 typealias Probability Float64
+typealias Vocabulary Array{UTF8String}
+typealias Sparse SparseMatrixCSC{Float64,Int64}
 
 type Topic
-    vocabulary::Array{UTF8String}
+    vocabulary::Vocabulary
     probabilities::Array{Probability}
 end
 
@@ -16,18 +18,18 @@ type TopicAssignment
     assignments::Array{Int} # indexes into topics array (all values must be less than length(topic))
 end
 
-type TopicDistribution
-    topics::Array{Topic}
-    distribution::Array{Probability} # length(topics) == length(distribution)
+function TopicAssignment(topics::Array{Topic}, num_words:Int)
+    assignments = ones(Int, num_words)
+    TopicAssignment(topics, assignments)
 end
 
 type BasicLDA <: LDAStorage
     vocabulary::Array{UTF8String}
     documents::Array{Document}
 
-    topics_::Array{Topic}
-    theta_::Array{TopicDistribution} # topic distributions per document
-    assignments_::Array{TopicAssignment} # topic assignments per word
+    topics_::Sparse # topic probabilities x words
+    theta_::Sparse # topic probabilities x documents
+    assignments_::Array{TopicAssignment} # documents-length array of (topic assignments x word)
 end
 
 function Topic(vocabulary::Array{UTF8String})
@@ -36,40 +38,29 @@ function Topic(vocabulary::Array{UTF8String})
     Topic(vocabulary, probabilities)
 end
 
-function TopicDistribution(topics::Array{Topics})
-    distribution = Array(Probability, length(topics))
-    fill!(distribution, 1.0 / length(topics))
-    TopicDistribution(topics, distribution)
-end
+function BasicLDA(vocabulary::Array{UTF8String}, documents::Array{Document}, num_topics::Int, rng)
+    topics = sprand(num_topics, length(vocabulary), 1.0 / num_topics, rng)
+    theta = sprand(num_topics, documents, 2.0 / num_topics, rng)
 
-function TopicAssignment(topics::Array{Topic}, num_words:Int)
-    assignments = ones(Int, num_words)
-    TopicAssignment(topics, assignments)
-end
-
-function BasicLDA(vocabulary::Array{UTF8String}, documents::Array{Document}, num_topics::Int)
-    topics = Topic[]
-    for i in 1:num_topics
-        push!(topics, Topic(vocabulary))
-    end
-
-    theta = TopicDistribution[]
     assignments = Array{TopicAssignment}
     for i in 1:length(documents)
-        push!(topics, TopicDistribution(topics))
-
-        a = TopicAssignment()
-        push(assignments, a)
+        a = TopicAssignment(topics, length(documents[i].words))
+        push!(assignments, a)
     end
 
     BasicLDA(vocabulary, documents, topics, theta, assignments)
 end
 
-vocabulary = UTF8String["the", "world", "is", "yours", "globe", "trotter"]
-documents = Array{Array{UTF8String}}[UTF8String["the", "the", "globe", "trotter"], UTF8String["is", "yours"]]
-BasicLDA(vocabulary, documents, 2)
+vocabulary = UTF8String["the", "world", "is", "yours", "globe", "trotter", "123", "234", "789"]
+documents = Array{Array{UTF8String}}[UTF8String["the", "the", "globe", "trotter"], UTF8String["is", "yours"], UTF8String["123", "234", "789"]
+BasicLDA(vocabulary, documents, 3, MersenneTwister(0))
 
-function random_lda_step(lda::BasicLDA)
+function lda_step_random!(lda::BasicLDA)
     # Randomly assigns a topic to every word
+    for d in 1:length(lda.documents)
+        for w in 1:length(lda.documents[d].words)
+            lda.assignments_[d].assignments[w] = 1
+        ends
+    end
 end
 
