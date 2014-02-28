@@ -10,11 +10,19 @@ rng = MersenneTwister(1)
 
 lda = BasicLDA(vocabulary, documents, 3, MersenneTwister(0))
 
+@test size(lda.topics_, 1) == num_topics(lda)
+@test size(lda.documents, 2) == num_documents(lda)
+@test size(lda.documents, 1) == size_vocabulary(lda)
+
 @test size(lda.documents, 1) == length(lda.vocabulary)
-@test size(lda.topics_, 1) == length(lda.vocabulary)
+@test size(lda.topics_, 2) == length(lda.vocabulary)
 @test size(lda.assignments_, 1) == length(lda.vocabulary)
-@test size(lda.topics_, 2) == size(lda.theta_, 1)
+@test size(lda.topics_, 1) == size(lda.theta_, 1)
 @test size(lda.theta_, 2) == size(lda.assignments_, 2)
 @test size(lda.documents, 2) == size(lda.assignments_, 2)
 
+@printf("Before:\n")
+show_topics(lda)
 lda_step_random!(lda, rng)
+@printf("\n\nAfter:\n")
+show_topics(lda)
