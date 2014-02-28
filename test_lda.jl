@@ -9,6 +9,7 @@ documents = speye(length(vocabulary), NDOCS)
 rng = MersenneTwister(1)
 
 lda = BasicLDA(vocabulary, documents, 3, MersenneTwister(0))
+maximization_step!(lda)
 
 @test size(lda.topics_, 1) == num_topics(lda)
 @test size(lda.documents, 2) == num_documents(lda)
