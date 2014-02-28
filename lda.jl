@@ -23,11 +23,15 @@ function BasicLDA(vocabulary::Array{UTF8String}, documents::Sparse, num_topics::
     BasicLDA(vocabulary, documents, topics, theta, assignments)
 end
 
-function lda_step_random!(lda::BasicLDA)
+function num_topics(lda::BasicLDA)
+    return length(lda.topics_)
+end
+
+function lda_step_random!(lda::BasicLDA, rng::AbstractRNG)
     # Randomly assigns a topic to every word
     for d in 1:length(lda.documents)
         for w in 1:length(lda.documents[d])
-            lda.assignments_[w, d] = 2
+            lda.assignments_[w, d] = ceil(rand(rng) * num_topics(lda))
         end
     end
 end
