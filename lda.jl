@@ -6,12 +6,17 @@ abstract LDAStorage
 # Types
 #######################################
 
+typealias TopicIndex Int64
+typealias VocabularyIndex Int64
 typealias Probability Float64
-typealias Vocabulary Array{UTF8String}
-typealias SparseFloats SparseMatrixCSC{Float64,Int64}
-typealias Topics SparseFloats
-typealias TopicAssignments Matrix{Int64}
+typealias Word UTF8String
 
+typealias SparseFloats SparseMatrixCSC{Probability, Int64}
+
+typealias Topics SparseFloats
+typealias Vocabulary Array{Word}
+typealias TopicAssignment Array{TopicIndex}
+typealias Document Array{VocabularyIndex}
 
 #######################################
 # Constants for keyword arguments
@@ -27,25 +32,29 @@ const DOCS = 40
 
 type BasicLDA <: LDAStorage
     # Input
-    vocabulary::Array{UTF8String}
-    documents::SparseFloats # words x documents
+    vocabulary::Vocabulary
+    documents::Array{Document} # words x documents
 
     # Derived Data during calculations
     topics_::Topics # num_topics x num_words
     theta_::SparseFloats # num_topics x num_documents
-    assignments_::TopicAssignments # num_words x num_documents
+    assignments_::Array{TopicAssignment} # num_words x num_documents
 end
 
 #######################################
 # Constructor for the input
 #######################################
 
-function BasicLDA(vocabulary::Array{UTF8String}, documents::SparseFloats, num_topics::Int, rng::AbstractRNG)
-    @assert size(documents, 1) == length(vocabulary)
-    num_documents = size(documents, 2)
+function BasicLDA(vocabulary::Array{UTF8String}, documents::Array{Document}, num_topics::Int, rng::AbstractRNG)
+    num_documents = length(documents)
     topics = sprand(num_topics, length(vocabulary), 1.0 / num_topics)
     theta = sprand(num_topics, num_documents, 2.0 / num_topics)
-    assignments = ones(length(vocabulary), num_documents)
+    
+    assignments = Array{Int64}[]
+    for d in 1:num_documents
+        a = ones(Int64, length(documents[d]))
+        push!(assignments, a)
+    end
 
     BasicLDA(vocabulary, documents, topics, theta, assignments)
 end
@@ -59,11 +68,15 @@ function num_topics(lda::BasicLDA)
 end
 
 function num_documents(lda::BasicLDA)
-    return size(lda.documents, 2)
+    return length(lda.documents)
 end
 
 function size_vocabulary(lda::BasicLDA)
     return length(lda.vocabulary)
+end
+
+function length_document(lda::BasicLDA, d::Int64)
+    return length(lda.documents[d])
 end
 
 #######################################
@@ -102,15 +115,8 @@ function show_word(lda::BasicLDA, w::Int)
 end
 
 function show_top_words(io, lda::BasicLDA, d::Int; words=WORDS)
-    count = 0
-    for w in 1:size_vocabulary(lda)
-        if lda.documents[w, d] > 0
-            @printf(io, " %s", show_word(lda, w))
-            count += 1
-        end
-        if count > words
-            break
-        end
+    for i in 1:min(words, length_document(lda, d))
+        @printf(io, " %s", show_word(lda, lda.documents[d][i]))
     end
 end
 
@@ -146,12 +152,11 @@ function maximization_step!(lda::BasicLDA)
     fill!(lda.theta_, 0.0001)
     fill!(lda.topics_, 0.0001)
     for d in 1:num_documents(lda)
-        for w in 1:size_vocabulary(lda)
-            if lda.documents[w, d] > 0
-                t = lda.assignments_[w, d]
-                lda.topics_[t, w] += 1.0
-                lda.theta_[t, d] += 1.0
-            end
+        for i in 1:length_document(lda, d)
+            t = lda.assignments_[d][i]
+            word = lda.documents[d][i]
+            lda.topics_[t, word] += 1.0
+            lda.theta_[t, d] += 1.0
         end
     end
     
@@ -184,21 +189,18 @@ end
 # E-Steps (Gibbs, Random, etc)
 #######################################
 
-function lda_step_random!(lda::BasicLDA, rng::AbstractRNG)
+function random_assignment!(lda::BasicLDA, rng::AbstractRNG)
     # Randomly assigns a topic to every word
     
     # Random Expectation
     for d in 1:num_documents(lda)
-        for w in 1:size_vocabulary(lda)
-            lda.assignments_[w, d] = ceil(rand(rng) * num_topics(lda))
+        for i in 1:length_document(lda, d)
+            lda.assignments_[d][i] = ceil(rand(rng) * num_topics(lda))
         end
     end
-    
-    # Maximization step
-    maximization_step!(lda)
 end
 
-function lda_step_gibbs!(lda::BasicLDA, rng::AbstractRNG)
+function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
     # Gibbs assigns a topic to every word
     
     # TODO: give sample an RNG
@@ -207,11 +209,12 @@ function lda_step_gibbs!(lda::BasicLDA, rng::AbstractRNG)
     
     # Random Expectation for all words in the document
     for d in 1:num_documents(lda)
-        for w in 1:size_vocabulary(lda)           
-            probabilities = (0.01 / num_topics(lda)) + full(lda.theta_[:,d] .* lda.topics_[:,w])
+        for i in 1:length_document(lda, d)
+            word = lda.documents[d][i]
+            probabilities = (0.01 / num_topics(lda)) + full(lda.theta_[:,d] .* lda.topics_[:,word])
             @assert length(probabilities) == num_topics(lda) 
             assignment = sample(probabilities)
-            lda.assignments_[w, d] = assignment
+            lda.assignments_[d][i] = assignment
         end
     end
 end
