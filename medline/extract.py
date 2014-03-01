@@ -81,5 +81,55 @@ def vocabulary(docs):
 
     return vocabulary
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+def strip_numbers(vocab):
+
+    new_vocab = []
+    for word in vocab:
+        if not is_number(word):
+            new_vocab.append(word)
+
+    return new_vocab
+
+
+
+def abstracts_to_csv(abstracts, vocab, outfile):
+
+    g = open(outfile, "w")
+
+    count =1
+    for doc in abstracts:
+
+        print "writing doc " + str(count) + " to csv"
+        count += 1
+
+        docout = []
+
+        doc = doc.lower()
+        doc = re.sub('[()!@#%\[\]&^*$.,\{\}\"\';:]', '', doc)
+
+        for word in doc.split(" ")[1:]:
+
+            if word in vocab:
+                docout.append(str(vocab.index(word)+1))
+
+        for i in docout:
+            g.write(i+",")
+
+        g.write("\n")
+
+    g.close
+
+
+
+
+
+
 
 
