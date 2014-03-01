@@ -32,9 +32,11 @@ const DOCS = 40
 
 type BasicLDA <: LDAStorage
     # Input
-    vocabulary::Vocabulary
+    vocabulary::Vocabulary # array of strings
     documents::Array{Document} # words x documents
-
+    alpha::Float64 # parameters
+    beta::Float64 # parameters
+    
     # Derived Data during calculations
     topics_::Topics # num_topics x num_words
     theta_::SparseFloats # num_topics x num_documents
@@ -45,7 +47,7 @@ end
 # Constructor for the input
 #######################################
 
-function BasicLDA(vocabulary::Array{UTF8String}, documents::Array{Document}, num_topics::Int, rng::AbstractRNG)
+function BasicLDA(vocabulary::Array{UTF8String}, documents::Array{Document}, num_topics::Int, rng::AbstractRNG; alpha=0.1, beta=0.1)
     num_documents = length(documents)
     topics = sprand(num_topics, length(vocabulary), 1.0 / num_topics)
     theta = sprand(num_topics, num_documents, 2.0 / num_topics)
@@ -56,7 +58,7 @@ function BasicLDA(vocabulary::Array{UTF8String}, documents::Array{Document}, num
         push!(assignments, a)
     end
 
-    BasicLDA(vocabulary, documents, topics, theta, assignments)
+    BasicLDA(vocabulary, documents, alpha, beta, topics, theta, assignments)
 end
 
 #######################################
@@ -204,9 +206,7 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
     # Gibbs assigns a topic to every word
     
     # TODO: give sample an RNG
-    alpha = 0.1 # TODO: put into LDA object
-    beta = 0.1
-    
+
     # Random Expectation for all words in the document
     for d in 1:num_documents(lda)
         for i in 1:length_document(lda, d)
