@@ -1,6 +1,5 @@
 using Base.Test
-require("lda.jl")
-
+using LDA
 
 topic1 = UTF8String["the", 
                     "world",

@@ -1,6 +1,6 @@
-require("util.jl")
+include("abstractlda.jl")
 
-abstract LDAStorage
+import Util: sample
 
 #######################################
 # Types
@@ -73,12 +73,12 @@ function num_documents(lda::BasicLDA)
     return length(lda.documents)
 end
 
-function size_vocabulary(lda::BasicLDA)
-    return length(lda.vocabulary)
-end
-
 function length_document(lda::BasicLDA, d::Int64)
     return length(lda.documents[d])
+end
+
+function size_vocabulary(lda::BasicLDA)
+    return length(lda.vocabulary)
 end
 
 #######################################
