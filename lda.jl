@@ -17,7 +17,7 @@ typealias TopicAssignments Matrix{Int64}
 # Constants for keyword arguments
 #######################################
 
-const WORDS = 12
+const WORDS = 6
 const TOPICS = 5
 const DOCS = 40
 
@@ -121,7 +121,7 @@ function show_document(io, lda::BasicLDA, d::Int; words=WORDS, topics=TOPICS)
     top_topics = sort([(t, i) for (i, t) in enumerate(lda.theta_[:,d])], rev=true)
     for i in 1:min(topics, num_topics(lda))
         proportion, tt = top_topics[i]
-        @printf(io, "   %0.2f%% - %s\n", 100.0 * proportion, show_topic(lda, tt; words=words))
+        @printf(io, "   %0.1f%% - %s\n", 100.0 * proportion, show_topic(lda, tt; words=words))
     end
 end
 
@@ -147,9 +147,11 @@ function maximization_step!(lda::BasicLDA)
     fill!(lda.topics_, 0.0001)
     for d in 1:num_documents(lda)
         for w in 1:size_vocabulary(lda)
-            t = lda.assignments_[w, d]
-            lda.topics_[t, w] += 1.0
-            lda.theta_[t, d] += 1.0
+            if lda.documents[w, d] > 0
+                t = lda.assignments_[w, d]
+                lda.topics_[t, w] += 1.0
+                lda.theta_[t, d] += 1.0
+            end
         end
     end
     
@@ -200,17 +202,16 @@ function lda_step_gibbs!(lda::BasicLDA, rng::AbstractRNG)
     # Gibbs assigns a topic to every word
     
     # TODO: give sample an RNG
+    alpha = 0.1 # TODO: put into LDA object
+    beta = 0.1
     
     # Random Expectation for all words in the document
     for d in 1:num_documents(lda)
-        for w in 1:size_vocabulary(lda)
-            probabilities = full(lda.theta_[:,d] .* lda.topics_[:,w])
-            @assert length(probabilities) == num_topics(lda)
+        for w in 1:size_vocabulary(lda)           
+            probabilities = (0.01 / num_topics(lda)) + full(lda.theta_[:,d] .* lda.topics_[:,w])
+            @assert length(probabilities) == num_topics(lda) 
             assignment = sample(probabilities)
             lda.assignments_[w, d] = assignment
         end
     end
-    
-    # Maximization step (resets theta and topic distributions)
-    maximization_step!(lda)
 end
