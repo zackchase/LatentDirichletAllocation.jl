@@ -1,4 +1,4 @@
-Pkg.update()
-Pkg.add("MAT")
-Pkg.add("HDF5")
-Pkg.add("Distributions")
+julia 0.3-
+MAT
+HDF5
+ArgParse
