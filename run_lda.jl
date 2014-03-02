@@ -5,8 +5,8 @@ using HDF5, JLD
 
 import LDA: BasicLDA, num_topics, num_documents, 
             show_topics, show_documents, latex_topics,
-            random_assignment!, gibbs_epoch!, maximization_step!
-
+            gibbs_epoch!, gibbs_step!,
+            random_assignment!, maximization_step!
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -23,7 +23,7 @@ function parse_commandline()
         "--iter", "-i"
             help = "Number of iterations to do"
             arg_type = Integer
-            default = 100
+            default = 1000
         "--alpha", "-a"
             help = "alpha parameter to LDA"
             arg_type = FloatingPoint
@@ -88,14 +88,15 @@ function main()
     show_documents(STDOUT, lda; documents=2)
     
     for i in 1:num_iter
-        @printf("\nIteration %i:\n", i)
-        gibbs_epoch!(lda, rng)
-        show_topics(STDOUT, lda)
-        println()
-        
-        # Maximization step (resets theta and topic distributions)
-        maximization_step!(lda)
-        show_documents(STDOUT, lda; documents=2)
+        gibbs_step!(lda, rng)
+        if i % 100 == 1
+            @printf("\nIteration %i:\n", i)
+            show_topics(STDOUT, lda)
+            println()
+            # Maximization step (resets theta and topic distributions)
+            maximization_step!(lda)
+            show_documents(STDOUT, lda; documents=2)
+        end
     end
 
     latex_topics(STDOUT, lda)
