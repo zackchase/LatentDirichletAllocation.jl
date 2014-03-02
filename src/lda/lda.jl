@@ -216,7 +216,7 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
             #probabilities = (0.01 / num_topics(lda)) + full(lda.theta_[:,d] .* lda.topics_[:,word])
 
             probabilities = Array{Probability, K}
-            qwi = lda.topics[:,word])
+            qwi = lda.topics[:,word]
             nprimesum = length(lda.assignments_[d])
 
             for j in K
