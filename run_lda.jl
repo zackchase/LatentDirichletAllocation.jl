@@ -20,6 +20,10 @@ function parse_commandline()
             help = "the number of topics K to find"
             arg_type = Integer
             required = true
+        "--iter", "-i"
+            help = "Number of iterations to do"
+            arg_type = Integer
+            default = 100
         "--alpha", "-a"
             help = "alpha parameter to LDA"
             arg_type = FloatingPoint
@@ -38,6 +42,7 @@ function main()
 
     data_dir = parsed_args["data_directory"]
     K = parsed_args["num_topics"]
+    num_iter = parsed_args["iter"]
     alpha, beta = parsed_args["alpha"], parsed_args["beta"]
     @assert ispath(data_dir)
     rng = MersenneTwister(42)
@@ -82,7 +87,7 @@ function main()
     println()
     show_documents(STDOUT, lda; documents=2)
     
-    for i in 1:100
+    for i in 1:num_iter
         @printf("\nIteration %i:\n", i)
         gibbs_epoch!(lda, rng)
         show_topics(STDOUT, lda)
