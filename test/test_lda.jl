@@ -36,6 +36,11 @@ docs[10:22,7:15] = 1.0
 docs[23:40,16:22] = 1.0
 #docs = docs[randperm(size(docs, 2)), :]
 
+# save the test data
+writedlm("data/simple_test/vocabulary.txt", vocabulary, ' ')
+using HDF5, JLD
+@save "data/simple_test/documents.jld" docs
+
 documents = Array{Int64}[]
 for d in 1:NDOCS
     document = Int64[]

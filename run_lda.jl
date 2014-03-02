@@ -12,8 +12,10 @@ rng = MersenneTwister(42)
 vocabulary = readdlm(joinpath(data_dir, "vocabulary.txt"), ' ', UTF8String)[:,1]
 docs = @load joinpath(data_dir, "documents.jld")
 
+@assert size(docs, 2) == length(vocabulary)
+
 documents = Array{Int64}[]
-for d in 1:400
+for d in 1:size(docs, 1)
     document = Int64[]
     for w in 1:length(vocabulary)
         if docs[d, w] > 0
