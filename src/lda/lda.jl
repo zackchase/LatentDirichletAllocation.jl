@@ -229,7 +229,7 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
                     end
                 end
 
-                prob_1 = (qwi + lda.beta) / (sumq + lda.beta)
+                prob_1 = (qwi[j] + lda.beta) / (sumq + lda.beta)
                 prob_2 = (nprimej + lda.alpha)/ (nprimesum + lda/alpha)
                 probabilities[j] = prob1 * prob2
 
