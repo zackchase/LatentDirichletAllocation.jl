@@ -36,7 +36,7 @@ type BasicLDA <: LDAStorage
     documents::Array{Document} # words x documents
     alpha::Float64 # parameters
     beta::Float64 # parameters
-    
+
     # Derived Data during calculations
     topics_::Topics # num_topics x num_words
     theta_::SparseFloats # num_topics x num_documents
@@ -51,7 +51,7 @@ function BasicLDA(vocabulary::Array{UTF8String}, documents::Array{Document}, num
     num_documents = length(documents)
     topics = sprand(num_topics, length(vocabulary), 1.0 / num_topics)
     theta = sprand(num_topics, num_documents, 2.0 / num_topics)
-    
+
     assignments = Array{Int64}[]
     for d in 1:num_documents
         a = ones(Int64, length(documents[d]))
@@ -87,7 +87,7 @@ end
 
 function show_topic(io, lda::BasicLDA, t::Int; words=WORDS)
    top_words = sort([(t, i) for (i, t) in enumerate(lda.topics_[t,:])], rev=true)
-    @printf(io, "Topic %i:", t) 
+    @printf(io, "Topic %i:", t)
     for w in 1:min(words, size_vocabulary(lda))
       probability, index = top_words[w]
       @printf(io, " %s (%0.2f)", lda.vocabulary[index], probability)
@@ -97,7 +97,7 @@ end
 function show_topic(lda::BasicLDA, t::Int; words=WORDS)
    io = IOBuffer()
    show_topic(io, lda, t; words=words)
-   takebuf_string(io) 
+   takebuf_string(io)
 end
 
 function show_topics(io, lda::BasicLDA; topics=TOPICS, words=WORDS)
@@ -113,7 +113,7 @@ end
 function show_word(lda::BasicLDA, w::Int)
    io = IOBuffer()
    show_word(io, lda, w)
-   takebuf_string(io) 
+   takebuf_string(io)
 end
 
 function show_top_words(io, lda::BasicLDA, d::Int; words=WORDS)
@@ -161,7 +161,7 @@ function maximization_step!(lda::BasicLDA)
             lda.theta_[t, d] += 1.0
         end
     end
-    
+
     # TODO: jperla: this can be optimized sparsely
     # now, normalize the counts
     sums = sum(lda.topics_, 2)
@@ -173,8 +173,8 @@ function maximization_step!(lda::BasicLDA)
                 lda.topics_[t, w] /= s
             end
         end
-    end    
-    
+    end
+
     sums = sum(lda.theta_, 1)
     @assert length(sums) == num_documents(lda)
     for d in 1:num_documents(lda)
@@ -193,7 +193,7 @@ end
 
 function random_assignment!(lda::BasicLDA, rng::AbstractRNG)
     # Randomly assigns a topic to every word
-    
+
     # Random Expectation
     for d in 1:num_documents(lda)
         for i in 1:length_document(lda, d)
@@ -204,15 +204,40 @@ end
 
 function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
     # Gibbs assigns a topic to every word
-    
+
     # TODO: give sample an RNG
 
     # Random Expectation for all words in the document
     for d in 1:num_documents(lda)
         for i in 1:length_document(lda, d)
+
             word = lda.documents[d][i]
-            probabilities = (0.01 / num_topics(lda)) + full(lda.theta_[:,d] .* lda.topics_[:,word])
-            @assert length(probabilities) == num_topics(lda) 
+            K = num_topics(lda)
+            #probabilities = (0.01 / num_topics(lda)) + full(lda.theta_[:,d] .* lda.topics_[:,word])
+
+            probabilities = Array{Probability, K}
+            qwi = lda.topics[:,word])
+            nprimesum = length(lda.assignments_[d])
+
+            for j in K
+                sumq = sum(lda.topics[j,:])
+
+                nprimej = 0
+                for w in length(lda.assignments_[d])
+                    if lda.assignments_[d][w] == j
+                        nprimej +=1
+                    end
+                end
+
+                prob_1 = (qwi + lda.beta) / (sumq + lda.beta)
+                prob_2 = (nprimej + lda.alpha)/ (nprimesum + lda/alpha)
+                probabilities[j] = prob1 * prob2
+
+            end
+
+
+
+            @assert length(probabilities) == K
             assignment = sample(probabilities)
             lda.assignments_[d][i] = assignment
         end
