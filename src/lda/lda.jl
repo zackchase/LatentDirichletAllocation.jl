@@ -86,7 +86,7 @@ end
 #######################################
 
 function show_topic(io, lda::BasicLDA, t::Int; words=WORDS)
-   top_words = sort([(t, i) for (i, t) in enumerate(lda.topics_[t,:])], rev=true)
+    top_words = sort([(t, i) for (i, t) in enumerate(lda.topics_[t,:])], rev=true)
     @printf(io, "Topic %i:", t)
     for w in 1:min(words, size_vocabulary(lda))
       probability, index = top_words[w]
@@ -137,6 +137,33 @@ function show_documents(io, lda::BasicLDA; documents=DOCS, topics=TOPICS, words=
     for d in 1:min(documents, num_documents(lda))
         show_document(io, lda, d; words=words, topics=topics)
     end
+end
+
+#######################################
+# Latex document table format
+#######################################
+
+function latex_topics(io, lda::BasicLDA; words=WORDS)
+    #\begin{tabular}{ l c r }
+    #  1 & 2 & 3 \\
+    #  4 & 5 & 6 \\
+    #  7 & 8 & 9 \\
+    #\end{tabular}
+    T = num_topics(lda)
+    max_length = maximum([length(s) for s in lda.vocabulary])
+    @printf(io, "\\begin{tabular}{ %s}\n", repeat("c ", T))
+    for i in 1:min(words, size_vocabulary(lda))
+        @printf(io, " ")
+        for t in 1:T
+            top_words = sort([(p, i) for (i, p) in enumerate(lda.topics_[t,:])], rev=true)
+            @printf(io, " %15s (%0.2f) ", lda.vocabulary[top_words[i][2]], top_words[i][1])
+            if t < T
+                @printf(io, "&")
+            end
+        end
+        @printf(io, "\\\\\n")
+    end
+    @printf(io, "\\end{tabular}\n")
 end
 
 #######################################
@@ -213,28 +240,27 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
 
             word = lda.documents[d][i]
             K = num_topics(lda)
-            #probabilities = (0.01 / num_topics(lda)) + full(lda.theta_[:,d] .* lda.topics_[:,word])
+            probabilities = (0.01 / K) + full(lda.theta_[:,d] .* lda.topics_[:,word])
 
-            probabilities = Array{Probability, K}
-            qwi = lda.topics[:,word]
-            nprimesum = length(lda.assignments_[d])
+            # probabilities = zeros(Float64, K)
+            # qwi = lda.topics_[:,word]
+            # nprimesum = length(lda.assignments_[d])
 
-            for j in K
-                sumq = sum(lda.topics[j,:])
+            # for j = 1:K
+            #     sumq = sum(lda.topics_[j,:])[1]
 
-                nprimej = 0
-                for w in length(lda.assignments_[d])
-                    if lda.assignments_[d][w] == j
-                        nprimej +=1
-                    end
-                end
+            #     nprimej = 0
+            #     for w in length(lda.assignments_[d])
+            #         if lda.assignments_[d][w] == j
+            #             nprimej +=1
+            #         end
+            #     end
 
-                prob_1 = (qwi[j] + lda.beta) / (sumq + lda.beta)
-                prob_2 = (nprimej + lda.alpha)/ (nprimesum + lda/alpha)
-                probabilities[j] = prob1 * prob2
+            #     prob_1 = (qwi[j] + lda.beta) / (sumq + lda.beta)
+            #     prob_2 = (nprimej + lda.alpha)/ (nprimesum + lda.alpha)
+            #     probabilities[j] = prob_1 * prob_2
 
-            end
-
+            # end
 
 
             @assert length(probabilities) == K

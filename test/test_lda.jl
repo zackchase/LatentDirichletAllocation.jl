@@ -85,4 +85,4 @@ for i in 1:100
     show_documents(STDOUT, lda; documents=6)
 end
 
-
+latex_topics(STDOUT, lda)
