@@ -1,7 +1,8 @@
 using Base.Test
 import LDA: BasicLDA, num_topics, num_documents, 
             show_topics, show_documents, latex_topics,
-            random_assignment!, gibbs_epoch!, maximization_step!
+            random_assignment!, maximization_step!,
+            gibbs_epoch!, gibbs_step!
 
 topic1 = UTF8String["the", 
                     "world",
@@ -81,15 +82,19 @@ show_topics(STDOUT, lda)
 println()
 show_documents(STDOUT, lda; documents=2)
 
-for i in 1:100
-    @printf("\nIteration %i:\n", i)
-    gibbs_epoch!(lda, rng)
-    show_topics(STDOUT, lda)
-    println()
+for i in 1:4000
+    gibbs_step!(lda, rng)
+    if i % 100 == 1
+        @printf("\nIteration %i:\n", i)
+        show_topics(STDOUT, lda)
+        println()
+    end
     
     # Maximization step (resets theta and topic distributions)
     maximization_step!(lda)
-    show_documents(STDOUT, lda; documents=6)
+    if i % 100 == 1
+        show_documents(STDOUT, lda; documents=6)
+    end
 end
 
 latex_topics(STDOUT, lda)

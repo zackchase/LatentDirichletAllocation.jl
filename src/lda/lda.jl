@@ -269,3 +269,17 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
         end
     end
 end
+
+function gibbs_step!(lda::BasicLDA, rng::AbstractRNG)
+    # Randomly pick a word to reassign randomly
+    d = rand(1:num_documents(lda))
+    i = rand(1:length_document(lda, d))
+
+    word = lda.documents[d][i]
+    K = num_topics(lda)
+    probabilities = (0.01 / K) + full(lda.theta_[:,d] .* lda.topics_[:,word])
+
+    @assert length(probabilities) == K
+    assignment = sample(probabilities)
+    lda.assignments_[d][i] = assignment
+end
