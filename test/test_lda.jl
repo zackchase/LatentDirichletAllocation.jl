@@ -1,5 +1,7 @@
 using Base.Test
-using LDA
+import LDA: BasicLDA, num_topics, num_documents, 
+            show_topics, show_documents, latex_topics,
+            random_assignment!, gibbs_epoch!, maximization_step!
 
 topic1 = UTF8String["the", 
                     "world",
