@@ -90,7 +90,7 @@ function show_topic(io, lda::BasicLDA, t::Int; words=WORDS)
     @printf(io, "Topic %i:", t)
     for w in 1:min(words, size_vocabulary(lda))
       probability, index = top_words[w]
-      @printf(io, " %s (%0.2f)", lda.vocabulary[index], probability)
+      @printf(io, " %s (%0.4f)", lda.vocabulary[index], probability)
     end
 end
 
@@ -156,7 +156,7 @@ function latex_topics(io, lda::BasicLDA; words=WORDS)
         @printf(io, " ")
         for t in 1:T
             top_words = sort([(p, i) for (i, p) in enumerate(lda.topics_[t,:])], rev=true)
-            @printf(io, " %15s (%0.2f) ", lda.vocabulary[top_words[i][2]], top_words[i][1])
+            @printf(io, " %18s (%0.4f) ", lda.vocabulary[top_words[i][2]], top_words[i][1])
             if t < T
                 @printf(io, "&")
             end

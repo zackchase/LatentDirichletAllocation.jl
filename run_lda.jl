@@ -32,6 +32,14 @@ function parse_commandline()
             help = "beta parameter to LDA"
             arg_type = FloatingPoint
             default = 0.1
+        "--words", "-w"
+            help = "number of words to show when debugging"
+            arg_type = Integer
+            default = 5
+        "--docs", "-d"
+            help = "number of docs to show when debugging"
+            arg_type = Integer
+            default = 2 
     end
 
     return parse_args(s)
@@ -43,6 +51,8 @@ function main()
     data_dir = parsed_args["data_directory"]
     K = parsed_args["num_topics"]
     num_iter = parsed_args["iter"]
+    words_to_show = parsed_args["words"]
+    docs_to_show = parsed_args["docs"]
     alpha, beta = parsed_args["alpha"], parsed_args["beta"]
     @assert ispath(data_dir)
     rng = MersenneTwister(42)
@@ -80,26 +90,26 @@ function main()
     @printf("Before:\n")
     show_topics(STDOUT, lda)
     println()
-    show_documents(STDOUT, lda; documents=2)
+    show_documents(STDOUT, lda; documents=docs_to_show)
     random_assignment!(lda, rng)
     @printf("\nAfter:\n")
     show_topics(STDOUT, lda)
     println()
-    show_documents(STDOUT, lda; documents=2)
+    show_documents(STDOUT, lda; documents=docs_to_show)
     
     for i in 1:num_iter
         gibbs_step!(lda, rng)
         if i % 100 == 1
             @printf("\nIteration %i:\n", i)
-            show_topics(STDOUT, lda)
+            show_topics(STDOUT, lda; words=words_to_show)
             println()
             # Maximization step (resets theta and topic distributions)
             maximization_step!(lda)
-            show_documents(STDOUT, lda; documents=2)
+            show_documents(STDOUT, lda; documents=docs_to_show, words=words_to_show)
         end
     end
 
-    latex_topics(STDOUT, lda)
+    latex_topics(STDOUT, lda; words=words_to_show)
 end
 
 main()
