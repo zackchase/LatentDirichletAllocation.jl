@@ -6,7 +6,8 @@ using HDF5, JLD
 import LDA: BasicLDA, num_topics, num_documents, 
             show_topics, show_documents, latex_topics,
             gibbs_epoch!, gibbs_step!,
-            random_assignment!, maximization_step!
+            random_assignment!, maximization_step!,
+            perplexity
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -24,6 +25,10 @@ function parse_commandline()
             help = "Number of iterations to do"
             arg_type = Integer
             default = 1000
+        "--debug_interval", "-x"
+            help = "Print debug information every x intervals"
+            arg_type = Integer
+            default = 100
         "--alpha", "-a"
             help = "alpha parameter to LDA"
             arg_type = FloatingPoint
@@ -65,6 +70,7 @@ function main()
     num_iter = parsed_args["iter"]
     words_to_show = parsed_args["words"]
     docs_to_show = parsed_args["docs"]
+    debug_interval = parsed_args["debug_interval"]
     alpha, beta = parsed_args["alpha"], parsed_args["beta"]
 
     rng = MersenneTwister(42)
@@ -109,10 +115,13 @@ function main()
     println()
     show_documents(STDOUT, lda; documents=docs_to_show)
     
+    perplexities = Float64[]
     for i in 1:num_iter
         gibbs_epoch!(lda, rng)
-        if i % 100 == 1
-            @printf("\nIteration %i:\n", i)
+        p = perplexity(lda)
+        push!(perplexities, p)
+        if i % debug_interval == 1
+            @printf("\nIteration %i (perplexity: %f):\n", i, p)
             show_topics(STDOUT, lda; words=words_to_show)
             println()
             # Maximization step (resets theta and topic distributions)
@@ -127,6 +136,7 @@ function main()
     writedlm(joinpath(output_dir, "theta"), full(lda.theta_), ',')
     writedlm(joinpath(output_dir, "topics"), full(lda.topics_), ',')
     writedlm(joinpath(output_dir, "assignments"), full(lda.assignments_), ',')
+    writedlm(joinpath(output_dir, "perplexities"), perplexities, ',')
     writedlm(joinpath(output_dir, "args"), [ARGS], ',')
 end
 

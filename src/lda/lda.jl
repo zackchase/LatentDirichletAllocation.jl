@@ -319,8 +319,6 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG )
     end
 end
 
-
-
 function gibbs_step!(lda::BasicLDA, rng::AbstractRNG)
     # Randomly pick a word to reassign randomly
     d = rand(1:num_documents(lda))
@@ -333,4 +331,18 @@ function gibbs_step!(lda::BasicLDA, rng::AbstractRNG)
     @assert length(probabilities) == K
     assignment = sample(probabilities)
     lda.assignments_[d][i] = assignment
+end
+
+function perplexity(lda::BasicLDA)
+    sum_prob = 0.0
+    sum_words = 0.0
+    for d in 1:num_documents(lda)
+        for i in 1:length_document(lda, d)
+            t = lda.assignments_[d][i]
+            word = lda.documents[d][i]
+            sum_prob = log(lda.topics_[t, word] * lda.theta_[t, d])
+            sum_words += 1.0
+        end
+    end
+    return e^(sum_prob / sum_words)
 end
