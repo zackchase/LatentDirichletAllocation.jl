@@ -229,24 +229,71 @@ function random_assignment!(lda::BasicLDA, rng::AbstractRNG)
     end
 end
 
-function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
-    # Gibbs assigns a topic to every word
 
-    # TODO: give sample an RNG
+function sum_words_by_topic(lda::BasicLDA)
+    
+    count = 0
+    K = num_topics(lda)
+    sumq = zeros(Int64, K)
+    for d in 1:num_documents(lda)
+       for i in 1:length_document(lda, d)
+          
+          current_topic = lda.assignments_[d][i]
+          sumq[current_topic] += 1
+          count += 1
+       end
+    end
+    
+    # println ("The total number of words in all documents is: ", count) 
+    # for i =1:K
+    #     println ("the number of words for topic $i is: ", sumq[i])
+    # end
+    
+    return sumq
+end
 
-    # Random Expectation for all words in the document
+function topics_by_words(lda::BasicLDA)
+
+    K = num_topics(lda)
+    t_by_w = zeros(Int64, K, size_vocabulary(lda))
+    
     for d in 1:num_documents(lda)
         for i in 1:length_document(lda, d)
+            current_topic = lda.assignments_[d][i]
+            current_word = lda.documents[d][i]
+            
+            t_by_w[current_topic, current_word] += 1
 
+        end
+    end
+    return t_by_w
+end
+
+
+function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG )
+    # Gibbs assigns a topic to every word
+    # TODO: give sample an RNG
+    # Random Expectation for all words in the document
+
+    K = num_topics(lda)
+    sumq = sum_words_by_topic(lda)
+    tbw = topics_by_words(lda)
+    sumbeta = lda.beta * size_vocabulary(lda)
+    @assert length(sumq) == K
+    
+    for d in 1:num_documents(lda)
+        for i in 1:length_document(lda, d)
+            current_topic = lda.assignments_[d][i]
+            
+            # println("Current sum is ", sumq[current_topic])
             word = lda.documents[d][i]
-            K = num_topics(lda)
-            # probabilities = (0.01 / K) + full(lda.theta_[:,d] .* lda.topics_[:,word])
-
+            sumq[current_topic] -= 1
+            tbw[current_topic, word] -= 1            
             probabilities = zeros(Float64, K)
-            qwi = lda.topics_[:,word]
 
             for j = 1:K
-                sumq = sum(lda.topics_[j,:])[1] + lda.beta * size_vocabulary(lda)
+            
+                qjwi = tbw[j, word]
 
                 nprimej = 0
                 for w in length(lda.assignments_[d])
@@ -254,8 +301,7 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
                         nprimej +=1
                     end
                 end
-
-                prob_1 = (qwi[j] + lda.beta) / (sumq + lda.beta)
+                prob_1 = (qjwi + lda.beta) / (sumq[j] + sumbeta)
                 prob_2 = (nprimej + lda.alpha)
                 probabilities[j] = prob_1 * prob_2
 
@@ -265,9 +311,15 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
             @assert length(probabilities) == K
             assignment = sample(probabilities)
             lda.assignments_[d][i] = assignment
+            
+            sumq[assignment] += 1
+            tbw[assignment, word] += 1            
+
         end
     end
 end
+
+
 
 function gibbs_step!(lda::BasicLDA, rng::AbstractRNG)
     # Randomly pick a word to reassign randomly

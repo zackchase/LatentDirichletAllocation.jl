@@ -103,7 +103,7 @@ function main()
     show_documents(STDOUT, lda; documents=docs_to_show)
     
     for i in 1:num_iter
-        gibbs_step!(lda, rng)
+        gibbs_epoch!(lda, rng)
         if i % 100 == 1
             @printf("\nIteration %i:\n", i)
             show_topics(STDOUT, lda; words=words_to_show)
