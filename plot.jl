@@ -14,7 +14,9 @@ for label in true_labels
     push!(colors, unique_map[label])
 end
 
-scatter3D(data[1,:], data[2,:], data[3,:],
+N = length(data[3,:])
+
+scatter3D(data[1,:], data[2,:], data[3,:][1] + Float64[(i/N) for i in 1:N],
           c=colors
 )
 
