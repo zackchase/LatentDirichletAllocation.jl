@@ -32,12 +32,16 @@ V = length(vocabulary)
 NDOCS = 40
 
 docs = zeros(Float64, NDOCS, V)
-docs[1:9,1:6] = 1.0
-docs[10:22,7:15] = 1.0
-docs[23:40,16:22] = 1.0
+docs[1:9, 1:6] = 1.0
+docs[10:22, 7:15] = 1.0
+docs[23:40, 16:22] = 1.0
 #docs = docs[randperm(size(docs, 2)), :]
 
 # save the test data
+true_labels = transpose(vcat([1.0 for i in 1:9],
+			     [2.0 for i in 10:22],
+			     [3.0 for i in 23:40]))
+writedlm("data/simple_test/true_labels.txt", true_labels, ' ')
 writedlm("data/simple_test/vocabulary.txt", vocabulary, ' ')
 using HDF5, JLD
 @save "data/simple_test/documents.jld" docs

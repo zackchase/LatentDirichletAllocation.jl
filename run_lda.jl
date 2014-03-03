@@ -40,6 +40,10 @@ function parse_commandline()
             help = "number of docs to show when debugging"
             arg_type = Integer
             default = 2 
+        "--theta"
+            help = "filename of where to save theta at the end of the run"
+            arg_type = String
+            default = ""
     end
 
     return parse_args(s)
@@ -54,6 +58,7 @@ function main()
     words_to_show = parsed_args["words"]
     docs_to_show = parsed_args["docs"]
     alpha, beta = parsed_args["alpha"], parsed_args["beta"]
+    theta_filename = parsed_args["theta"]
     @assert ispath(data_dir)
     rng = MersenneTwister(42)
     vocabulary = readdlm(joinpath(data_dir, "vocabulary.txt"), ' ', UTF8String)[:,1]
@@ -110,6 +115,11 @@ function main()
     end
 
     latex_topics(STDOUT, lda; words=words_to_show)
+
+    # Save final theta if appropriate
+    if theta_filename != ""
+        writedlm(theta_filename, full(lda.theta_), ',')
+    end
 end
 
 main()
