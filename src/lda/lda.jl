@@ -240,27 +240,26 @@ function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG)
 
             word = lda.documents[d][i]
             K = num_topics(lda)
-            probabilities = (0.01 / K) + full(lda.theta_[:,d] .* lda.topics_[:,word])
+            # probabilities = (0.01 / K) + full(lda.theta_[:,d] .* lda.topics_[:,word])
 
-            # probabilities = zeros(Float64, K)
-            # qwi = lda.topics_[:,word]
-            # nprimesum = length(lda.assignments_[d])
+            probabilities = zeros(Float64, K)
+            qwi = lda.topics_[:,word]
 
-            # for j = 1:K
-            #     sumq = sum(lda.topics_[j,:])[1]
+            for j = 1:K
+                sumq = sum(lda.topics_[j,:])[1] + lda.beta * size_vocabulary(lda)
 
-            #     nprimej = 0
-            #     for w in length(lda.assignments_[d])
-            #         if lda.assignments_[d][w] == j
-            #             nprimej +=1
-            #         end
-            #     end
+                nprimej = 0
+                for w in length(lda.assignments_[d])
+                    if lda.assignments_[d][w] == j
+                        nprimej +=1
+                    end
+                end
 
-            #     prob_1 = (qwi[j] + lda.beta) / (sumq + lda.beta)
-            #     prob_2 = (nprimej + lda.alpha)/ (nprimesum + lda.alpha)
-            #     probabilities[j] = prob_1 * prob_2
+                prob_1 = (qwi[j] + lda.beta) / (sumq + lda.beta)
+                prob_2 = (nprimej + lda.alpha)
+                probabilities[j] = prob_1 * prob_2
 
-            # end
+            end
 
 
             @assert length(probabilities) == K
