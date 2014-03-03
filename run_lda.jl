@@ -40,8 +40,8 @@ function parse_commandline()
             help = "number of docs to show when debugging"
             arg_type = Integer
             default = 2 
-        "--theta"
-            help = "filename of where to save theta at the end of the run"
+        "--output", "-o"
+            help = "where to output the final data"
             arg_type = String
             default = ""
     end
@@ -53,13 +53,20 @@ function main()
     parsed_args = parse_commandline()
 
     data_dir = parsed_args["data_directory"]
+    if parsed_args["output"] == ""
+        output_dir = joinpath("output", basename(dirname(string(data_dir, "/"))))
+    else
+        output_dir = parsed_args["output"]
+    end
+    @assert ispath(data_dir)
+    @assert ispath(output_dir)
+
     K = parsed_args["num_topics"]
     num_iter = parsed_args["iter"]
     words_to_show = parsed_args["words"]
     docs_to_show = parsed_args["docs"]
     alpha, beta = parsed_args["alpha"], parsed_args["beta"]
-    theta_filename = parsed_args["theta"]
-    @assert ispath(data_dir)
+
     rng = MersenneTwister(42)
     vocabulary = readdlm(joinpath(data_dir, "vocabulary.txt"), ' ', UTF8String)[:,1]
     documents_file = joinpath(data_dir, "documents.jld")
@@ -117,9 +124,10 @@ function main()
     latex_topics(STDOUT, lda; words=words_to_show)
 
     # Save final theta if appropriate
-    if theta_filename != ""
-        writedlm(theta_filename, full(lda.theta_), ',')
-    end
+    writedlm(joinpath(output_dir, "theta"), full(lda.theta_), ',')
+    writedlm(joinpath(output_dir, "topics"), full(lda.topics_), ',')
+    writedlm(joinpath(output_dir, "assignments"), full(lda.assignments_), ',')
+    writedlm(joinpath(output_dir, "args"), [ARGS], ',')
 end
 
 main()
