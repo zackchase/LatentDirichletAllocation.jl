@@ -54,6 +54,39 @@ function parse_commandline()
     return parse_args(s)
 end
 
+function best_label(predicted_topics::Array{Int64}, t::Int, true_labels::Array{Int64}, unique_labels::Array{Int64})
+    m = 0
+    b = 0
+    @assert length(predicted_topics) == length(true_labels)
+    for label in unique_labels
+        if sum([(i == j == true) for (i, j) in zip([t == p for p in predicted_topics], [l == label for l in true_labels])]) > m
+            b = label
+        end
+    end
+    return b
+end
+
+function accuracy_assigned_labels(lda::BasicLDA, true_labels::Array{Int64})
+    # Assign each topic to a label,
+    # then return accuracy on true labels.
+    theta = lda.theta_
+    @assert size(theta, 2) == length(true_labels)
+    T = size(theta, 1)
+    D = length(true_labels)
+    predicted_topics = Int64[]
+    for d in 1:D
+        push!(predicted_topics, indmax([c for c in theta[:, d]]))
+    end
+    predicted_labels = zeros(Int64, D)
+    unique_labels = unique(true_labels)
+    @assert length(predicted_labels) == length(predicted_topics)
+    for t in 1:T
+        b = best_label(predicted_topics, t, true_labels, unique_labels)
+        predicted_labels[[p == t for p in predicted_topics]] = b
+    end
+    return sum([p == t for (p, t) in zip(predicted_labels, true_labels)]) / D
+end
+
 function main()
     parsed_args = parse_commandline()
 
@@ -90,6 +123,13 @@ function main()
         end
         push!(documents, document)
     end
+
+    true_labels_filename = joinpath(data_dir, "truelabels.txt")
+    if ispath(true_labels_filename)
+        true_labels = Int64[a for a in readdlm(true_labels_filename, ' ')]
+    else
+        true_labels = ones(Int64, length(documents))
+    end
     
     lda = BasicLDA(vocabulary, documents, K, rng; alpha=alpha, beta=beta)
     
@@ -116,12 +156,15 @@ function main()
     show_documents(STDOUT, lda; documents=docs_to_show)
     
     perplexities = Float64[]
+    accuracies = Float64[]
     for i in 1:num_iter
         gibbs_epoch!(lda, rng)
         p = perplexity(lda)
+        a = accuracy_assigned_labels(lda, true_labels)
         push!(perplexities, p)
+        push!(accuracies, a)
         if i % debug_interval == 1
-            @printf("\nIteration %i (perplexity: %f):\n", i, p)
+            @printf("\nIteration %i (accuracy: %f, perplexity: %f):\n", i, a, p)
             show_topics(STDOUT, lda; words=words_to_show)
             println()
             # Maximization step (resets theta and topic distributions)
@@ -137,6 +180,7 @@ function main()
     writedlm(joinpath(output_dir, "topics"), full(lda.topics_), ',')
     writedlm(joinpath(output_dir, "assignments"), full(lda.assignments_), ',')
     writedlm(joinpath(output_dir, "perplexities"), perplexities, ',')
+    writedlm(joinpath(output_dir, "accuracies"), accuracies, ',')
     writedlm(joinpath(output_dir, "args"), [ARGS], ',')
 end
 
