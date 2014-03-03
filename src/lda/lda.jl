@@ -340,9 +340,9 @@ function perplexity(lda::BasicLDA)
         for i in 1:length_document(lda, d)
             t = lda.assignments_[d][i]
             word = lda.documents[d][i]
-            sum_prob = log(lda.topics_[t, word] * lda.theta_[t, d])
+            sum_prob += log(lda.topics_[t, word] * lda.theta_[t, d])
             sum_words += 1.0
         end
     end
-    return e^(sum_prob / sum_words)
+    return e^(-1 * sum_prob / sum_words)
 end
