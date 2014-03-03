@@ -1,8 +1,10 @@
 using PyPlot
 
-name = ARGS[1]
-true_labels = readdlm(ARGS[2], ' ')
-data = readdlm(string(name), ',')
+theta_filename = ARGS[1]
+true_labels_filename = ARGS[2]
+
+true_labels = readdlm(true_labels_filename, ' ')
+data = readdlm(theta_filename, ',')
 
 unique_labels = zip(unique(true_labels), ["b", "r", "g", "y", "o"])
 unique_map = Dict{Any, String}()
@@ -16,8 +18,8 @@ end
 
 N = length(data[3,:])
 
-scatter3D(data[1,:], data[2,:], data[3,:][1] + Float64[(i/N) for i in 1:N],
+scatter3D(data[1,:], data[2,:], data[3,:][1], # + Float64[(i/N) for i in 1:N], # noise to separate, probably not needed
           c=colors
 )
 
-savefig(string(name, ".png"))
+savefig(string(theta_filename, ".png"))
