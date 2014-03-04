@@ -59,7 +59,7 @@ function best_label(predicted_topics::Array{Int64}, t::Int, true_labels::Array{I
     b = 0
     @assert length(predicted_topics) == length(true_labels)
     for label in unique_labels
-        if sum([(i == j == true) for (i, j) in zip([t == p for p in predicted_topics], [l == label for l in true_labels])]) > m
+        if sum((predicted_topics .== t) .== (true_labels .== label) .== true) > m
             b = label
         end
     end
@@ -82,9 +82,9 @@ function accuracy_assigned_labels(lda::BasicLDA, true_labels::Array{Int64})
     @assert length(predicted_labels) == length(predicted_topics)
     for t in 1:T
         b = best_label(predicted_topics, t, true_labels, unique_labels)
-        predicted_labels[[p == t for p in predicted_topics]] = b
+        predicted_labels[predicted_topics .== t] = b
     end
-    return sum([p == t for (p, t) in zip(predicted_labels, true_labels)]) / D
+    return sum(predicted_labels .== true_labels) / D
 end
 
 function topic_label_grid(lda::BasicLDA, true_labels::Array{Int64})
