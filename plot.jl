@@ -3,8 +3,8 @@ using PyPlot
 theta_filename = ARGS[1]
 true_labels_filename = ARGS[2]
 
-true_labels = readdlm(true_labels_filename, ' ')
 data = readdlm(theta_filename, ',')
+true_labels = readdlm(true_labels_filename, ' ')
 
 unique_labels = zip(unique(true_labels), ["b", "r", "g", "y", "o"])
 unique_map = Dict{Any, String}()
