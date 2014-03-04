@@ -7,7 +7,7 @@ import LDA: BasicLDA, num_topics, num_documents,
             show_topics, show_documents, latex_topics,
             gibbs_epoch!, gibbs_step!,
             random_assignment!, maximization_step!,
-            perplexity
+            perplexity, topics_by_words, sum_words_by_topic
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -87,6 +87,44 @@ function accuracy_assigned_labels(lda::BasicLDA, true_labels::Array{Int64})
     return sum([p == t for (p, t) in zip(predicted_labels, true_labels)]) / D
 end
 
+function topic_label_grid(lda::BasicLDA, true_labels::Array{Int64})
+
+    # Assign each document a toic show percent associations with true labels.
+    theta = lda.theta_
+    @assert size(theta, 2) == length(true_labels)
+    T = size(theta, 1)
+    D = length(true_labels)
+    predicted_topics = Int64[]
+    K=num_topics(lda)
+    unique_labels = unique(true_labels)
+    L = length(unique_labels)
+    
+    for d in 1:D
+        push!(predicted_topics, indmax([c for c in theta[:, d]]))
+    end
+    
+    topic_by_label = zeros(Float64, K, L)
+    
+    for t=1:T
+        for l = 1:L
+            numerator = 0
+            denominator = 0
+            for i = 1:D
+                if predicted_topics[i] == t 
+                    denominator += 1
+                    if true_labels[i] == unique_labels[l]
+                        numerator += 1
+                    end
+                end
+            end
+            
+            topic_by_label[t,l] = numerator / denominator
+        end
+    end 
+    
+    return topic_by_label
+end
+
 function main()
     parsed_args = parse_commandline()
 
@@ -157,8 +195,11 @@ function main()
     
     perplexities = Float64[]
     accuracies = Float64[]
+    
+    sumq = sum_words_by_topic(lda)
+    tbw = topics_by_words(lda)
     for i in 1:num_iter
-        gibbs_epoch!(lda, rng)
+        gibbs_epoch!(lda, rng, sumq, tbw)
         p = perplexity(lda)
         a = accuracy_assigned_labels(lda, true_labels)
         push!(perplexities, p)
@@ -174,6 +215,8 @@ function main()
     end
 
     latex_topics(STDOUT, lda; words=words_to_show)
+    
+    print (topic_label_grid(lda, true_labels))
 
     # Save final theta if appropriate
     writedlm(joinpath(output_dir, "theta"), full(lda.theta_), ',')

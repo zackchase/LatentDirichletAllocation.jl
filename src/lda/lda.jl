@@ -270,14 +270,12 @@ function topics_by_words(lda::BasicLDA)
 end
 
 
-function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG )
+function gibbs_epoch!(lda::BasicLDA, rng::AbstractRNG, sumq, tbw)
     # Gibbs assigns a topic to every word
     # TODO: give sample an RNG
     # Random Expectation for all words in the document
 
     K = num_topics(lda)
-    sumq = sum_words_by_topic(lda)
-    tbw = topics_by_words(lda)
     sumbeta = lda.beta * size_vocabulary(lda)
     @assert length(sumq) == K
     
